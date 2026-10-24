@@ -21,7 +21,7 @@ class Main_Window:
             )
         
         self.title.grid(
-            row=0, column=1,
+            row=0, column=2,
             rowspan=1, columnspan=2,
             pady=15,
             sticky="nsew"
@@ -39,7 +39,7 @@ class Main_Window:
 
         self.new_game_btn.grid(
             row=2,
-            column=1,
+            column=2,
             rowspan=1,
             columnspan=2,
         )
@@ -56,15 +56,29 @@ class Main_Window:
 
         self.load_game_btn.grid(
             row=3,
-            column=1,
+            column=2,
             rowspan=1,
             columnspan=2,
             pady=20
         )
 
+        self.creator_label = ctk.CTkLabel(
+            window,
+            text="Creator - Addison Murphy",
+            text_color="#333333",
+            font=("", 16)
+        )
+
+        self.creator_label.grid(
+            row=5,
+            column=0,
+            sticky='w',
+            pady=(0,5), padx=(10,0)
+
+        )
         
-        window.columnconfigure(0, weight=1)
-        window.columnconfigure(3, weight=1)
+        window.columnconfigure(1, weight=1)
+        window.columnconfigure(4, weight=2)
 
         window.rowconfigure(1, weight=1)
         window.rowconfigure(4, weight=1)
