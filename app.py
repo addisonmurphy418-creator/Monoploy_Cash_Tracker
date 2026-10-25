@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from PIL import Image
 
 class Main_Window:
     background_color = "#C70000"
@@ -7,25 +8,14 @@ class Main_Window:
         super().__init__()
 
         self.window = window
-        window.geometry("500x400")
+        window.minsize(1100, 500)
         window.configure(fg_color="#cde6d0")
         window.after(0, lambda:window.state('zoomed'))
 
+        self.logo = ctk.CTkImage(light_image=Image.open("images/Monoploy-logo.png"), size=(400, 400))
 
-        self.title = ctk.CTkLabel(window,
-            text='Monopoly Cash Tracker',
-            width=40, height=28, 
-            fg_color='transparent',
-            text_color="#000000",
-            font=("", 38, "bold")
-            )
-        
-        self.title.grid(
-            row=0, column=2,
-            rowspan=1, columnspan=2,
-            pady=15,
-            sticky="nsew"
-        )
+        self.logo_label = ctk.CTkLabel(window, text="", image=self.logo)
+        self.logo_label.grid(row=0, column=2) 
 
         self.new_game_btn = ctk.CTkButton(window,
             text="Create New Game",
@@ -38,10 +28,10 @@ class Main_Window:
             )
 
         self.new_game_btn.grid(
-            row=2,
+            row=1,
             column=2,
             rowspan=1,
-            columnspan=2,
+            columnspan=1,
         )
 
         self.load_game_btn = ctk.CTkButton(window,
@@ -55,10 +45,10 @@ class Main_Window:
             )
 
         self.load_game_btn.grid(
-            row=3,
+            row=2,
             column=2,
             rowspan=1,
-            columnspan=2,
+            columnspan=1,
             pady=20
         )
 
@@ -74,13 +64,12 @@ class Main_Window:
             column=0,
             sticky='w',
             pady=(0,5), padx=(10,0)
-
         )
+
         
         window.columnconfigure(1, weight=1)
-        window.columnconfigure(4, weight=2)
+        window.columnconfigure(3, weight=2)
 
-        window.rowconfigure(1, weight=1)
         window.rowconfigure(4, weight=1)
 
 
@@ -91,4 +80,3 @@ if __name__ == '__main__':
     root.mainloop()
 
 
-        
