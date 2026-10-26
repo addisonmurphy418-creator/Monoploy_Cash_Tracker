@@ -3,7 +3,15 @@ import customtkinter as ctk
 from PIL import Image, ImageTk
 
 class Main_Window:
-    background_color = "#C70000"
+    #Stores all decorations for widgets - makes it easier to change later
+    decorations = {
+        "Buttons":{
+
+        "Background Color":"#C70000",
+        "Text Color": "#000000",
+        "Border Color": "#000000",
+        "Hover Color": "#981111"},
+    }
 
     def __init__(self, window):
         super().__init__()
@@ -25,7 +33,6 @@ class Main_Window:
         #Creates background image using PhotoImage
         self.bg_photo = ImageTk.PhotoImage(self.background_raw)
        
-
         #Raw Logo Image, That's resized and set with PhotoImage
         logo_raw = Image.open("images/Monoploy-logo.png").convert('RGBA')
         logo_raw = logo_raw.resize((500, 500), Image.LANCZOS)
@@ -45,23 +52,35 @@ class Main_Window:
         window.rowconfigure(0, minsize=500)
         window.columnconfigure(2, minsize=500)
 
-
     
         #New Game button for players to start a new game and assign Players
         self.new_game_btn = ctk.CTkButton(window,
             text="Create New Game",
+
+            #Border Properties
+            border_color=self.decorations["Buttons"]["Border Color"],
+            border_width=3,
+
+            #Size Properties
             width=200,
             height=50,
+
+            #Font Properties
             font=("Kabel Heavy",20,"bold"),
-            fg_color=self.background_color,
+            fg_color=self.decorations["Buttons"]["Background Color"],
+
+            #Hover Properties
             hover=True,
-            hover_color="#B10404",
+            hover_color=self.decorations["Buttons"]["Hover Color"],
             )
 
         #Places the button in the middle of the screen, 
         self.new_game_btn.grid(
+            #Widget Placement
             row=1,
             column=2,
+
+            #Widget Span
             rowspan=1,
             columnspan=1,
         )
@@ -69,12 +88,22 @@ class Main_Window:
         #Load Button for players to load a saved game. 
         self.load_game_btn = ctk.CTkButton(window,
             text="Load Game",
+
+            #Border Properties
+            border_color=self.decorations["Buttons"]["Border Color"],
+            border_width=3,
+
+            #Size Properties
             width=200,
             height=50,
+
+            #Font Properties
             font=("Kabel Heavy",20,"bold"),
-            fg_color=self.background_color,
+            fg_color=self.decorations["Buttons"]["Background Color"],
+
+            #Hover Properties
             hover=True,
-            hover_color="#B10404",
+            hover_color=self.decorations["Buttons"]["Hover Color"],
             )
 
         """Places load button in the middle of the screen, 
