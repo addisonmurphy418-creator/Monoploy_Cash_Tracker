@@ -5,12 +5,6 @@ from PIL import Image, ImageTk
 class Main_Window:
     #Stores all decorations for widgets - makes it easier to change later
     decorations = {
-        "Buttons":{
-
-        "Background Color":"#C70000",
-        "Text Color": "#000000",
-        "Border Color": "#000000",
-        "Hover Color": "#981111"},
     }
 
     def __init__(self, window):
