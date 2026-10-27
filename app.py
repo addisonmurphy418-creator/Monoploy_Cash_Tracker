@@ -28,6 +28,9 @@ class Main_Window:
         self.window = window
         window.withdraw()
 
+        #Checks if other windows are open
+        self.howto_win = None
+
         #Changes the Window's icon after a short delay
         window.after(200, lambda: window.iconbitmap("images/Cash-icon.ico"))
 
@@ -62,6 +65,7 @@ class Main_Window:
         #Help Button - Tells the user about the application
         self.help_btn = ctk.CTkButton(self.canvas,
             text="How To Use?",
+            command=self.open_help,
 
             border_color=self.decorations["Buttons"]["Border Color"],
             border_width=self.decorations["Buttons"]["Border Size"],
@@ -73,7 +77,6 @@ class Main_Window:
             hover_color=self.decorations["Buttons"]["Hover Color"])
 
         self.help_win = self.canvas.create_window(0, 0, window=self.help_btn, anchor="nw")
-
     
     
         #New Game button for players to start a new game and assign Players
@@ -148,9 +151,17 @@ class Main_Window:
         #Loads widgets and unhides window 
         self.finish_setup()
 
+    def open_help(self):
+        if self.howto_win is not None and self.howto_win.winfo_exists():
+            return 
+
+        self.window.withdraw()
+        self.howto_win = HowToWindow(self.window)
+
     def on_resize(self, event):
         self.place_items(event.width, event.height)
 
+    #Places the widgets on the canvas with the center widgets having the same x value
     def place_items(self, width, height):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
@@ -165,23 +176,56 @@ class Main_Window:
         self.window.update()
 
         w, h = self.window.winfo_width(), self.window.winfo_height()
-       
-
-        # Background scaled once to the final window size
-        resized = self.background_raw.resize((w, h), Image.BILINEAR)
-        self.bg_photo = ImageTk.PhotoImage(resized)
-        self.canvas.itemconfigure(self.bg_item, image=self.bg_photo)
 
         #Logo into its grid cell
         self.place_items(w, h)
         self.canvas.itemconfigure(self.logo_item, state='normal')
         
-
         #Small pause, then show everything at once
         self.window.deiconify()
 
-class HowToWindow:
-    super().__init__(self.Main_Window)
+class HowToWindow(ctk.CTkToplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+
+        self.state("zoomed")
+        self.update()
+       
+        self.after(100, self.bring_to_front)
+
+        self.title("How To Use")
+        self.minsize(700, 500)
+        self.configure(fg_color="#cde6d0")
+
+        self.background_raw = Image.open("images/Monoploy-bg.png").convert('RGB')
+        self.background_raw.thumbnail((1920, 1080))
+        self.bg_photo = ImageTk.PhotoImage(self.background_raw)
+
+        self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
+        self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        tk.Misc.lower(self.canvas)
+
+        self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
+
+        self.canvas.bind("<Configure>", self.on_resize)
+
+    def bring_to_front(self):
+        self.lift()
+        self.attributes("-topmost", True)
+        self.after(600, lambda: self.attributes("-topmost", False))
+        self.focus()
+
+    def on_resize(self, event):
+        self.place_item(event.width, event.height)
+    
+    def place_item(self, width, height):
+        cx, cy = width // 2, height // 2
+        self.canvas.coords(self.bg_item, cx, cy)
+
+      
+        
+        
+        
    
 if __name__ == '__main__':
     root = ctk.CTk()
