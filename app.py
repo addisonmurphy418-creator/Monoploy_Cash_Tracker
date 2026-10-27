@@ -5,6 +5,20 @@ from PIL import Image, ImageTk
 class Main_Window:
     #Stores all decorations for widgets - makes it easier to change later
     decorations = {
+        "Buttons":{
+                
+        "Background Color":"#C70000",
+        "Text Color": "#000000",
+        "Border Color": "#000000",
+        "Border Size": 3,
+        "Hover Color": "#A50909",
+        "Font": "Kabel Heavy"},
+
+        "Creator Label":{
+
+        "Text Color": "#333333",
+        "Background Color": "transparent",
+        "Font Size": 10}
     }
 
     def __init__(self, window):
@@ -14,11 +28,13 @@ class Main_Window:
         self.window = window
         window.withdraw()
 
-        window.title("Monopoly Cash Tracker")
-        window.resizable(0, 0)
-        window.configure(fg_color="#cde6d0")
-        window.after(0, lambda:window.state('zoomed'))
+        #Changes the Window's icon after a short delay
+        window.after(200, lambda: window.iconbitmap("images/Cash-icon.ico"))
 
+        window.title("Monopoly Cash Tracker")
+        window.minsize(700, 500)
+        window.configure(fg_color="#cde6d0")
+    
         #Initalizes the raw image for the background and the background img
         self.background_raw = Image.open("images/Monoploy-bg.png").convert('RGB')
         self.background_raw.thumbnail((1920, 1080))
@@ -33,22 +49,35 @@ class Main_Window:
         self.logo_photo = ImageTk.PhotoImage(logo_raw)
 
         #Background canvas: places the image and sits behind everything
-        self.canvas = tk.Canvas(window, highlightthickness=0, bd=0)
+        self.canvas = tk.Canvas(window, highlightthickness=0, bd=0, bg="#cde6d0")
         self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
         tk.Misc.lower(self.canvas)
 
-        #Creates logo and background with canvas
-        self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor='nw')
-        self.logo_item = self.canvas.create_image(0, 0, image=self.logo_photo, anchor="center", state="hidden")
-        
 
-        #logo is now revered as a cell in the grid layout
-        window.rowconfigure(0, minsize=500)
-        window.columnconfigure(2, minsize=500)
+
+        #Creates logo and background with canvas
+        self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor='center')
+        self.logo_item = self.canvas.create_image(0, 0, image=self.logo_photo, anchor="center", state="hidden")
+
+        #Help Button - Tells the user about the application
+        self.help_btn = ctk.CTkButton(self.canvas,
+            text="How To Use?",
+
+            border_color=self.decorations["Buttons"]["Border Color"],
+            border_width=self.decorations["Buttons"]["Border Size"],
+
+            font= (self.decorations["Buttons"]["Font"], 14),
+            fg_color= self.decorations["Buttons"]["Background Color"],
+            
+            hover=True,
+            hover_color=self.decorations["Buttons"]["Hover Color"])
+
+        self.help_win = self.canvas.create_window(0, 0, window=self.help_btn, anchor="nw")
 
     
+    
         #New Game button for players to start a new game and assign Players
-        self.new_game_btn = ctk.CTkButton(window,
+        self.new_game_btn = ctk.CTkButton(self.canvas,
             text="Create New Game",
 
             #Border Properties
@@ -68,19 +97,9 @@ class Main_Window:
             hover_color=self.decorations["Buttons"]["Hover Color"],
             )
 
-        #Places the button in the middle of the screen, 
-        self.new_game_btn.grid(
-            #Widget Placement
-            row=1,
-            column=2,
-
-            #Widget Span
-            rowspan=1,
-            columnspan=1,
-        )
 
         #Load Button for players to load a saved game. 
-        self.load_game_btn = ctk.CTkButton(window,
+        self.load_game_btn = ctk.CTkButton(self.canvas,
             text="Load Game",
 
             #Border Properties
@@ -100,49 +119,52 @@ class Main_Window:
             hover_color=self.decorations["Buttons"]["Hover Color"],
             )
 
-        """Places load button in the middle of the screen, 
-        with a padding to keep it away from {new_game} button"""
-        self.load_game_btn.grid(
-            row=2,
-            column=2,
-            rowspan=1,
-            columnspan=1,
-            pady=20
-        )
-
+         #Adds buttons to canvas 
+        self.new_game_win = self.canvas.create_window(0, 0, window=self.new_game_btn, anchor="center")
+        self.load_game_win = self.canvas.create_window(0, 0, window=self.load_game_btn, anchor="center")
+        
         self.creator_label = ctk.CTkLabel(
             window,
+
+            #Text Properties
             text="Creator - Addison Murphy",
-            text_color="#E7E7E7",
-            fg_color="#333333",
-            font=("", 16, "bold"),
-            padx=10
-        )
+            text_color=self.decorations["Creator Label"]["Text Color"],
 
-        self.creator_label.grid(
-            row=5,
-            column=0,
-            sticky='w',
-            pady=(0,5), padx=(10,0)
-        )
+            #Font Properties
+            fg_color=self.decorations["Creator Label"]["Background Color"],
+            font=("", self.decorations["Creator Label"]["Font Size"], "bold"),
+
+            #Padding (Inner)
+            padx=10,
+
+            #Size Properties
+            width=0,
+            height=0)
+
+        self.creator_label.place(relx=0, rely=1, anchor='sw', x=10, y=-5)
 
 
-        #Fills in the empty spaces to push the content to the center
-        window.columnconfigure(1, weight=1)
-        window.columnconfigure(3, weight=2)
-
-        #Fills the space in the rows and pushes content to the middle
-        window.rowconfigure(4, weight=1)
-
+        self.canvas.bind("<Configure>", self.on_resize)
+        #Loads widgets and unhides window 
         self.finish_setup()
 
+    def on_resize(self, event):
+        self.place_items(event.width, event.height)
+
+    def place_items(self, width, height):
+        cx, cy = width // 2, height // 2
+        self.canvas.coords(self.bg_item, cx, cy)
+        self.canvas.coords(self.logo_item, cx, 250)
+        self.canvas.coords(self.help_win, 20, 20)          # stays top-left
+        self.canvas.coords(self.new_game_win, cx, 540)
+        self.canvas.coords(self.load_game_win, cx, 640)
+        
     def finish_setup(self):
         # Maximize while still hidden, then let tkinter lay everything out
         self.window.state("zoomed")
         self.window.update()
 
         w, h = self.window.winfo_width(), self.window.winfo_height()
-        x, y, bw, bh = self.window.grid_bbox(2, 0)
        
 
         # Background scaled once to the final window size
@@ -151,12 +173,15 @@ class Main_Window:
         self.canvas.itemconfigure(self.bg_item, image=self.bg_photo)
 
         #Logo into its grid cell
-        self.canvas.coords(self.logo_item, x + bw // 2, y + bh // 2)
+        self.place_items(w, h)
         self.canvas.itemconfigure(self.logo_item, state='normal')
         
 
         #Small pause, then show everything at once
         self.window.deiconify()
+
+class HowToWindow:
+    super().__init__(self.Main_Window)
    
 if __name__ == '__main__':
     root = ctk.CTk()
