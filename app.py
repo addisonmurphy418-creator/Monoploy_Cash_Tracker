@@ -2,27 +2,29 @@ import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
 
+#Stores all decorations for widgets - makes it easier to change later
+decorations = {
+    "Buttons":{
+            
+    "Background Color":"#C70000",
+    "Text Color": "#FFFFFF",
+    "Border Color": "#000000",
+    "Border Size": 3,
+    "Hover Color": "#A50909",
+    "Font": "Kabel Heavy"},
+
+    "Creator Label":{
+
+    "Text Color": "#333333",
+    "Background Color": "transparent",
+    "Font Size": 10}
+}
+
 class Main_Window:
-    #Stores all decorations for widgets - makes it easier to change later
-    decorations = {
-        "Buttons":{
-                
-        "Background Color":"#C70000",
-        "Text Color": "#000000",
-        "Border Color": "#000000",
-        "Border Size": 3,
-        "Hover Color": "#A50909",
-        "Font": "Kabel Heavy"},
-
-        "Creator Label":{
-
-        "Text Color": "#333333",
-        "Background Color": "transparent",
-        "Font Size": 10}
-    }
-
-    def __init__(self, window):
+    def __init__(self, window, decorations):
         super().__init__()
+
+        self.decorations = decorations
 
         #Initialize Window and Hide Window
         self.window = window
@@ -65,6 +67,7 @@ class Main_Window:
         #Help Button - Tells the user about the application
         self.help_btn = ctk.CTkButton(self.canvas,
             text="How To Use?",
+            text_color=decorations["Buttons"]["Text Color"],
             command=self.open_help,
 
             border_color=self.decorations["Buttons"]["Border Color"],
@@ -82,6 +85,7 @@ class Main_Window:
         #New Game button for players to start a new game and assign Players
         self.new_game_btn = ctk.CTkButton(self.canvas,
             text="Create New Game",
+            text_color=decorations["Buttons"]["Text Color"],
 
             #Border Properties
             border_color=self.decorations["Buttons"]["Border Color"],
@@ -104,6 +108,7 @@ class Main_Window:
         #Load Button for players to load a saved game. 
         self.load_game_btn = ctk.CTkButton(self.canvas,
             text="Load Game",
+            text_color=decorations["Buttons"]["Text Color"],
 
             #Border Properties
             border_color=self.decorations["Buttons"]["Border Color"],
@@ -151,12 +156,19 @@ class Main_Window:
         #Loads widgets and unhides window 
         self.finish_setup()
 
+    #Opens the How to Window
     def open_help(self):
         if self.howto_win is not None and self.howto_win.winfo_exists():
             return 
 
         self.window.withdraw()
-        self.howto_win = HowToWindow(self.window)
+        self.howto_win = HowToWindow(self.window, self.decorations, self.show_main)
+
+    #Shows the main window when clicking go back
+    def show_main(self):
+        self.howto_win = None
+        self.window.deiconify()
+        self.window.state("zoomed")
 
     def on_resize(self, event):
         self.place_items(event.width, event.height)
@@ -185,30 +197,73 @@ class Main_Window:
         self.window.deiconify()
 
 class HowToWindow(ctk.CTkToplevel):
-    def __init__(self, parent):
+    def __init__(self, parent, decorations, on_close):
         super().__init__(parent)
 
+        self.parent = parent
+        self.on_close = on_close
+
+        #Disabling 'X' button for How to Window
+        self.protocol("WM_DELETE_WINDOW", self.go_back)
+
+        #Changes the Window's icon after a short delay
+        self.after(200, lambda: self.iconbitmap("images/Cash-icon.ico"))
+
+        #Adds saved custom properties 
+        self.decorations = decorations
+
+        #Makes the window fullscreen
         self.state("zoomed")
         self.update()
-       
+
+        #Brings the window to the front 
         self.after(100, self.bring_to_front)
 
+        #Window Properties 
         self.title("How To Use")
         self.minsize(700, 500)
         self.configure(fg_color="#cde6d0")
 
+        #Creates the background for the window
         self.background_raw = Image.open("images/Monoploy-bg.png").convert('RGB')
         self.background_raw.thumbnail((1920, 1080))
         self.bg_photo = ImageTk.PhotoImage(self.background_raw)
 
+        #Creates the canvas for the background and other widgets
         self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
         self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
         tk.Misc.lower(self.canvas)
 
+        #Creates the back button
+        self.back_btn = ctk.CTkButton(self.canvas,
+        text="← Back",
+        command=self.go_back,
+        text_color=decorations["Buttons"]["Text Color"],
+
+        border_width=decorations["Buttons"]["Border Size"],
+        border_color=decorations["Buttons"]["Border Color"],
+
+        hover=True,
+        hover_color=decorations["Buttons"]["Hover Color"],
+        
+        fg_color=decorations["Buttons"]["Background Color"],
+        font=(decorations["Buttons"]["Font"], 14, "bold"),
+        
+        )
+
+        self.back_win = self.canvas.create_window(0, 0, window=self.back_btn, anchor="nw")
+
+        #Creates the background image for the canvas
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
 
         self.canvas.bind("<Configure>", self.on_resize)
 
+    #Allows the user to go back to the menu
+    def go_back(self):
+        self.destroy()
+        self.on_close()
+
+    #Brings the Howto Window to the top and then lets go.
     def bring_to_front(self):
         self.lift()
         self.attributes("-topmost", True)
@@ -217,10 +272,12 @@ class HowToWindow(ctk.CTkToplevel):
 
     def on_resize(self, event):
         self.place_item(event.width, event.height)
-    
+
+    #Placement of each widget cx and cy being the center 
     def place_item(self, width, height):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
+        self.canvas.coords(self.back_win, 20, 20)
 
       
         
@@ -229,7 +286,7 @@ class HowToWindow(ctk.CTkToplevel):
    
 if __name__ == '__main__':
     root = ctk.CTk()
-    w = Main_Window(root)
+    w = Main_Window(root, decorations)
     root.mainloop()
 
 
