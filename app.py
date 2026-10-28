@@ -16,37 +16,68 @@ decorations = {
     "Creator Label":{
 
     "Text Color": "#333333",
-    "Background Color": "transparent",
-    "Font Size": 10}
+    "Background Color": "#cde6d0",
+    "Font Size": 10},
+
+    "Frames":{
+        "Background Color": "#FFFFFF",
+        "Border Color": "#000000",
+        "Border Size": 3,
+        "Corner Radius": 5,
+    }
 }
 
-class Main_Window:
-    def __init__(self, window, decorations):
-        super().__init__()
 
+class App(ctk.CTk):
+    def __init__(self): 
+        super().__init__()
+        self.title("Monopoly Cash Tracker")
+        self.geometry("1000x700")
+        self.minsize(700,500)
+
+        self.after(200, lambda: self.iconbitmap("images/Cash-icon.ico"))
+
+        self.bg_photo = self.load_background()
+
+        #Every screen is stacked in the same spot
+        container = ctk.CTkFrame(self, fg_color="transparent")
+        container.pack(fill="both", expand=True)
+
+        self.pages = {}
+        for Page in (MenuPage, HowToPage):
+            page = Page(container, decorations, self)
+            page.place(x=0, y=0, relwidth=1, relheight=1)
+            self.pages[Page] = page
+
+        self.show_page(MenuPage)
+        self.after(10, lambda: self.state("zoomed"))
+
+    def load_background(self):
+        img = Image.open("images/Monoploy-bg.png").convert('RGB')
+        img.thumbnail((1920, 1080))
+        return ImageTk.PhotoImage(img)
+    
+    def show_page(self, page_class):
+        page = self.pages[page_class]
+        page.tkraise()
+        self.after_idle(lambda: self.refresh_page(page))
+
+    def refresh_page(self, page):
+        page.update_idletasks()
+        w, h = page.canvas.winfo_width(), page.winfo_height()
+        if w < 200 or h < 200:
+            return
+        page.place_items(w, h)
+
+
+class MenuPage(ctk.CTkFrame):
+    def __init__(self, parent, decorations, controller):
+        super().__init__(parent)
+        self.controller = controller
         self.decorations = decorations
 
-        #Initialize Window and Hide Window
-        self.window = window
-        window.withdraw()
-
-        #Checks if other windows are open
-        self.howto_win = None
-
-        #Changes the Window's icon after a short delay
-        window.after(200, lambda: window.iconbitmap("images/Cash-icon.ico"))
-
-        window.title("Monopoly Cash Tracker")
-        window.minsize(700, 500)
-        window.configure(fg_color="#cde6d0")
-    
-        #Initalizes the raw image for the background and the background img
-        self.background_raw = Image.open("images/Monoploy-bg.png").convert('RGB')
-        self.background_raw.thumbnail((1920, 1080))
-
-
-        #Creates background image using PhotoImage
-        self.bg_photo = ImageTk.PhotoImage(self.background_raw)
+        #Grabs background image from main App class
+        self.bg_photo = controller.bg_photo
        
         #Raw Logo Image, That's resized and set with PhotoImage
         logo_raw = Image.open("images/Monoploy-logo.png").convert('RGBA')
@@ -54,21 +85,18 @@ class Main_Window:
         self.logo_photo = ImageTk.PhotoImage(logo_raw)
 
         #Background canvas: places the image and sits behind everything
-        self.canvas = tk.Canvas(window, highlightthickness=0, bd=0, bg="#cde6d0")
+        self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
         self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
-        tk.Misc.lower(self.canvas)
-
-
 
         #Creates logo and background with canvas
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor='center')
-        self.logo_item = self.canvas.create_image(0, 0, image=self.logo_photo, anchor="center", state="hidden")
+        self.logo_item = self.canvas.create_image(0, 0, image=self.logo_photo, anchor="center")
 
         #Help Button - Tells the user about the application
         self.help_btn = ctk.CTkButton(self.canvas,
             text="How To Use?",
             text_color=decorations["Buttons"]["Text Color"],
-            command=self.open_help,
+            command=lambda: controller.show_page(HowToPage),
 
             border_color=self.decorations["Buttons"]["Border Color"],
             border_width=self.decorations["Buttons"]["Border Size"],
@@ -132,15 +160,15 @@ class Main_Window:
         self.load_game_win = self.canvas.create_window(0, 0, window=self.load_game_btn, anchor="center")
         
         self.creator_label = ctk.CTkLabel(
-            window,
+            self,
 
             #Text Properties
             text="Creator - Addison Murphy",
-            text_color=self.decorations["Creator Label"]["Text Color"],
+            text_color=decorations["Creator Label"]["Text Color"],
 
             #Font Properties
-            fg_color=self.decorations["Creator Label"]["Background Color"],
-            font=("", self.decorations["Creator Label"]["Font Size"], "bold"),
+            fg_color=decorations["Creator Label"]["Background Color"],
+            font=("", decorations["Creator Label"]["Font Size"], "bold"),
 
             #Padding (Inner)
             padx=10,
@@ -151,26 +179,13 @@ class Main_Window:
 
         self.creator_label.place(relx=0, rely=1, anchor='sw', x=10, y=-5)
 
-
         self.canvas.bind("<Configure>", self.on_resize)
-        #Loads widgets and unhides window 
-        self.finish_setup()
-
-    #Opens the How to Window
-    def open_help(self):
-        if self.howto_win is not None and self.howto_win.winfo_exists():
-            return 
-
-        self.window.withdraw()
-        self.howto_win = HowToWindow(self.window, self.decorations, self.show_main)
-
-    #Shows the main window when clicking go back
-    def show_main(self):
-        self.howto_win = None
-        self.window.deiconify()
-        self.window.state("zoomed")
-
+     
     def on_resize(self, event):
+        if event.width < 200 or event.height < 200:
+            return
+        if not self.winfo_viewable():
+            return
         self.place_items(event.width, event.height)
 
     #Places the widgets on the canvas with the center widgets having the same x value
@@ -182,63 +197,25 @@ class Main_Window:
         self.canvas.coords(self.new_game_win, cx, 540)
         self.canvas.coords(self.load_game_win, cx, 640)
         
-    def finish_setup(self):
-        # Maximize while still hidden, then let tkinter lay everything out
-        self.window.state("zoomed")
-        self.window.update()
 
-        w, h = self.window.winfo_width(), self.window.winfo_height()
-
-        #Logo into its grid cell
-        self.place_items(w, h)
-        self.canvas.itemconfigure(self.logo_item, state='normal')
-        
-        #Small pause, then show everything at once
-        self.window.deiconify()
-
-class HowToWindow(ctk.CTkToplevel):
-    def __init__(self, parent, decorations, on_close):
+class HowToPage(ctk.CTkFrame):
+    def __init__(self, parent, decorations, controller):
         super().__init__(parent)
-
-        self.parent = parent
-        self.on_close = on_close
-
-        #Disabling 'X' button for How to Window
-        self.protocol("WM_DELETE_WINDOW", self.go_back)
-
-        #Changes the Window's icon after a short delay
-        self.after(200, lambda: self.iconbitmap("images/Cash-icon.ico"))
-
-        #Adds saved custom properties 
+        self.controller = controller
         self.decorations = decorations
 
-        #Makes the window fullscreen
-        self.state("zoomed")
-        self.update()
-
-        #Brings the window to the front 
-        self.after(100, self.bring_to_front)
-
-        #Window Properties 
-        self.title("How To Use")
-        self.minsize(700, 500)
-        self.configure(fg_color="#cde6d0")
-
-        #Creates the background for the window
-        self.background_raw = Image.open("images/Monoploy-bg.png").convert('RGB')
-        self.background_raw.thumbnail((1920, 1080))
-        self.bg_photo = ImageTk.PhotoImage(self.background_raw)
-
+        #Grabs background image from App clas
+        self.bg_photo = controller.bg_photo
+        
         #Creates the canvas for the background and other widgets
         self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
         self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
-        tk.Misc.lower(self.canvas)
+
 
         #Creates the back button
         self.back_btn = ctk.CTkButton(self.canvas,
         text="← Back",
-        command=self.go_back,
-        text_color=decorations["Buttons"]["Text Color"],
+        command=lambda: controller.show_page(MenuPage),
 
         border_width=decorations["Buttons"]["Border Size"],
         border_color=decorations["Buttons"]["Border Color"],
@@ -247,46 +224,56 @@ class HowToWindow(ctk.CTkToplevel):
         hover_color=decorations["Buttons"]["Hover Color"],
         
         fg_color=decorations["Buttons"]["Background Color"],
+
+        #Font Properties 
         font=(decorations["Buttons"]["Font"], 14, "bold"),
+        text_color=decorations["Buttons"]["Text Color"],
         
         )
 
+        #Adds the Back Button to the canvas
         self.back_win = self.canvas.create_window(0, 0, window=self.back_btn, anchor="nw")
+
+        self.howto_frame = ctk.CTkScrollableFrame(
+            self,
+
+            #Background Color 
+            fg_color= decorations["Frames"]["Background Color"],
+
+            #Size Properties
+            width=650,
+            #height=600,
+
+            #Border Properties
+            border_color = decorations["Frames"]["Border Color"],
+            border_width= decorations["Frames"]["Border Size"],
+            corner_radius= decorations["Frames"]["Corner Radius"]
+            )
+
+        #Places the frame on the window
+        self.howto_frame.place(relx=0.5, rely=0.5, relheight=0.85, relwidth=0.5, anchor="center")
+        self.howto_frame.lift()
 
         #Creates the background image for the canvas
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
 
         self.canvas.bind("<Configure>", self.on_resize)
 
-    #Allows the user to go back to the menu
-    def go_back(self):
-        self.destroy()
-        self.on_close()
-
-    #Brings the Howto Window to the top and then lets go.
-    def bring_to_front(self):
-        self.lift()
-        self.attributes("-topmost", True)
-        self.after(600, lambda: self.attributes("-topmost", False))
-        self.focus()
 
     def on_resize(self, event):
-        self.place_item(event.width, event.height)
+        if event.width < 200 or event.height < 200:
+            return
+        if not self.winfo_viewable():
+            return
+        self.place_items(event.width, event.height)
 
     #Placement of each widget cx and cy being the center 
-    def place_item(self, width, height):
+    def place_items(self, width, height):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
         self.canvas.coords(self.back_win, 20, 20)
 
-      
-        
-        
-        
-   
 if __name__ == '__main__':
-    root = ctk.CTk()
-    w = Main_Window(root, decorations)
-    root.mainloop()
+    App().mainloop()
 
 
