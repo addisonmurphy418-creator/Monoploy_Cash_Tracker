@@ -40,7 +40,7 @@ class App(ctk.CTk):
         super().__init__()
         self.title("Monopoly Cash Tracker")
         self.geometry("1000x700")
-        self.minsize(700,500)
+        self.minsize(1000,500)
 
         self.after(200, lambda: self.iconbitmap("images/Cash-icon.ico"))
 
@@ -249,7 +249,6 @@ class HowToPage(ctk.CTkFrame):
         #Font Properties 
         font=(decorations["Buttons"]["Font"], 14, "bold"),
         text_color=decorations["Buttons"]["Text Color"],
-        
         )
 
         #Adds the Back Button to the canvas
@@ -273,7 +272,7 @@ class HowToPage(ctk.CTkFrame):
             )
 
         #Places the frame on the window
-        self.howto_frame.place(relx=0.5, rely=0.5, relheight=0.85, relwidth=0.5, anchor="center")
+        self.howto_frame.place(relx=0.5, rely=0.5, relheight=0.85, relwidth=0.45, anchor="center")
         self.howto_frame.lift()
 
         #Creates How to Heading
@@ -322,6 +321,9 @@ class HowToPage(ctk.CTkFrame):
         self.canvas.coords(self.back_win, 20, 20)
 
 class CreatePlayers(ctk.CTkFrame):
+    MAX_PLAYERS = 8
+    MIN_PLAYERS = 2
+
     def __init__(self, parent, decorations, controller):
         super().__init__(parent)
         self.controller = controller
@@ -348,17 +350,137 @@ class CreatePlayers(ctk.CTkFrame):
         )
 
         #Places the frame on the window and lift make sure it's on top
-        self.players_frame.place(relx=0.5, rely=0.5, relheight=0.9, relwidth=0.45, anchor="center")
-        self.players_frame.lift()        
+        self.players_frame.place(relx=0.5, rely=0.5, relheight=0.95, relwidth=0.45, anchor="center")
+        self.players_frame.lift()
 
+        #Two eqal-ish columns: labels on the left, enteries on the right
+        self.players_frame.grid_columnconfigure(0, weight=1)
+        self.players_frame.grid_columnconfigure(1, weight=0)
+        self.players_frame.grid_columnconfigure(2, weight=0)
+        self.players_frame.grid_columnconfigure(3, weight=1)
+
+        #Title for Create Players Frame
+        self.header =ctk.CTkLabel(
+            self.players_frame,
+            text="Enter Players:",
+            text_color=decorations["Header"]["Text Color"],
+            font=(decorations["Header"]["Font"], 32, "bold")
+        )
+        self.header.grid(row=0, column=0, columnspan=4, pady=(20, 5))
+
+        #Hints to the players how many players are allowed
+        self.hint = ctk.CTkLabel(
+            self.players_frame,
+            text=f"Minimum {self.MIN_PLAYERS} players, maximum {self.MAX_PLAYERS} players!",
+            text_color="#BFBBBB",
+
+            font=("Kabel Heavey", 16, "bold"), 
+        )
+        self.hint.grid(row=1, column=0, columnspan=4, pady=(0, 15))
+
+        #One label + entry per player
+        self.player_entries = []
+        for i in range(self.MAX_PLAYERS):
+            label = ctk.CTkLabel(
+                self.players_frame,
+                text=f"Player {i + 1}:",
+                text_color=decorations["Header"]["Text Color"],
+                font=(decorations["Header"]["Font"], 24),
+                anchor="e",
+            )
+            label.grid(row=i + 2, column=0, padx=(0,10), pady=8, sticky="e")
+
+            entry = ctk.CTkEntry(
+                self.players_frame,
+                placeholder_text="Required" if i < self.MIN_PLAYERS else "Optional",
+                text_color="#000000",
+                fg_color="#FFFFFF",
+                border_color=decorations["Buttons"]["Border Color"],
+                border_width=2,
+                height=40,
+                width=200,
+                font=(decorations["Header"]["Font"], 18, "bold")
+            )
+            entry.grid(row=i + 2, column=1, padx=(10, 0), pady=8, sticky="w")
+            self.player_entries.append(entry)
+
+        # Error Message (empty until needed)
+        self.error_label = ctk.CTkLabel(self.players_frame, text='', text_color="#C70000", font=(decorations["Header"]["Font"], 18, "bold"))
+        self.error_label.grid(row=self.MAX_PLAYERS + 2, column=0, columnspan=4, pady=(0, 0))
+
+        # Start Button
+        self.start_btn = ctk.CTkButton(
+            self.players_frame,
+            text="Start Game",
+            command=self.start_game,
+            width=200,
+            height=45,
+            font=(decorations["Buttons"]["Font"], 18, "bold"),
+            text_color=decorations["Buttons"]["Text Color"],
+            fg_color=decorations["Buttons"]["Background Color"],
+            border_color=decorations["Buttons"]["Border Color"],
+            border_width=decorations["Buttons"]["Border Size"],
+            hover=True,
+            hover_color=decorations["Buttons"]["Hover Color"]
+        )
+        self.start_btn.grid(row=self.MAX_PLAYERS + 3, column=0, columnspan=4, pady=(10, 10))
+
+        #Creates the back button
+        self.back_btn = ctk.CTkButton(self.canvas,
+        text="← Back",
+        command=lambda: (self.clear_entries(), controller.show_page(MenuPage)),
+
+        border_width=decorations["Buttons"]["Border Size"],
+        border_color=decorations["Buttons"]["Border Color"],
+
+        hover=True,
+        hover_color=decorations["Buttons"]["Hover Color"],
+        
+        fg_color=decorations["Buttons"]["Background Color"],
+
+        #Font Properties 
+        font=(decorations["Buttons"]["Font"], 14, "bold"),
+        text_color=decorations["Buttons"]["Text Color"],
+        )
+
+        #Create window on canvas for back button
+        self.back_win = self.canvas.create_window(0, 0, window=self.back_btn, anchor="nw")
+        
         #Creates the image for the background from the canvas
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
 
         self.canvas.bind("<Configure>", self.on_resize)
 
+    def clear_entries(self):
+        for e in self.player_entries:
+            if e.get() != "":
+                e.delete(0, "end")
+        self.error_label.configure(text="")
+
+    def get_player_names(self):
+        #Returns the names of the players, that were filled in (in order).
+        names = [e.get().strip().title() for e in self.player_entries]
+        return [n for n in names if n]
+    
+    def start_game(self):
+        names = self.get_player_names()
+
+        if len(names) < self.MIN_PLAYERS:
+            self.error_label.configure(text=f'"Please Enter At Least {self.MIN_PLAYERS} Player Names."')
+            return
+        if len({n.lower() for n in names}) != len(names):
+            self.error_label.configure(text='"Players Names Must Be Different"')
+            return
+
+        self.error_label.configure(text="")
+        self.controller.player_names = names
+        print(names)    #TODO: Replace with show page (Game Page)
+
+
     def place_items(self, width, height):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
+        self.canvas.coords(self.back_win, 20, 20)
 
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
