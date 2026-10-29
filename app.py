@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
@@ -24,7 +25,13 @@ decorations = {
         "Border Color": "#000000",
         "Border Size": 3,
         "Corner Radius": 5,
+    },
+
+    "Header":{
+        "Text Color": "#000000",
+        "Font": "Kabel Heavy",
     }
+
 }
 
 
@@ -40,14 +47,12 @@ class App(ctk.CTk):
         self.bg_photo = self.load_background()
 
         #Every screen is stacked in the same spot
-        container = ctk.CTkFrame(self, fg_color="transparent")
+        container = tk.Frame(self, bg="#cde6d0")
         container.pack(fill="both", expand=True)
 
         self.pages = {}
-        for Page in (MenuPage, HowToPage):
-            page = Page(container, decorations, self)
-            page.place(x=0, y=0, relwidth=1, relheight=1)
-            self.pages[Page] = page
+        for Page in (MenuPage, HowToPage, CreatePlayers):
+            self.pages[Page] = Page(container, decorations, self)
 
         self.show_page(MenuPage)
         self.after(10, lambda: self.state("zoomed"))
@@ -58,7 +63,10 @@ class App(ctk.CTk):
         return ImageTk.PhotoImage(img)
     
     def show_page(self, page_class):
+        for p in self.pages.values():
+            p.place_forget()
         page = self.pages[page_class]
+        page.place(x=0, y=0, relwidth=1, relheight=1)
         page.tkraise()
         self.after_idle(lambda: self.refresh_page(page))
 
@@ -113,6 +121,7 @@ class MenuPage(ctk.CTkFrame):
         #New Game button for players to start a new game and assign Players
         self.new_game_btn = ctk.CTkButton(self.canvas,
             text="Create New Game",
+            command=lambda: controller.show_page(CreatePlayers),
             text_color=decorations["Buttons"]["Text Color"],
 
             #Border Properties
@@ -197,6 +206,18 @@ class MenuPage(ctk.CTkFrame):
         self.canvas.coords(self.new_game_win, cx, 540)
         self.canvas.coords(self.load_game_win, cx, 640)
         
+#Creates subclass for scroll frame in How to Page, Makes only scroll below the header
+class FixedScrollableFrame(ctk.CTkScrollableFrame):
+    def _mouse_wheel_all(self, event):
+       canvas = self._parent_canvas
+       bbox = canvas.bbox("all")
+
+       if bbox and (bbox[3] - bbox[1]) <= canvas.winfo_height():
+           canvas.yview_moveto(0)
+           return
+       super()._mouse_wheel_all(event)
+       
+
 
 class HowToPage(ctk.CTkFrame):
     def __init__(self, parent, decorations, controller):
@@ -234,8 +255,9 @@ class HowToPage(ctk.CTkFrame):
         #Adds the Back Button to the canvas
         self.back_win = self.canvas.create_window(0, 0, window=self.back_btn, anchor="nw")
 
-        self.howto_frame = ctk.CTkScrollableFrame(
+        self.howto_frame = FixedScrollableFrame(
             self,
+            orientation="vertical",
 
             #Background Color 
             fg_color= decorations["Frames"]["Background Color"],
@@ -254,11 +276,37 @@ class HowToPage(ctk.CTkFrame):
         self.howto_frame.place(relx=0.5, rely=0.5, relheight=0.85, relwidth=0.5, anchor="center")
         self.howto_frame.lift()
 
+        #Creates How to Heading
+        self.header = ctk.CTkLabel(self.howto_frame,
+            text="How to Use Monoploy Cash Tracker",
+
+
+            text_color=decorations["Header"]["Text Color"],
+            font=(decorations["Header"]["Font"], 24, "bold")
+            )
+        
+
+        #Places the header on to the scroll frame
+        self.header.pack(pady=(20, 10))
+
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "HowTo.txt")
+        with open(path, "r", encoding="utf-8") as f:
+            self.howto_text = f.read()
+
+
+        self.content = ctk.CTkLabel(self.howto_frame,
+            text=self.howto_text,
+            text_color=decorations["Header"]["Text Color"],
+            wraplength=500,
+            justify="left",
+            anchor="center"
+            )
+        self.content.pack(pady=20, padx=20, fill="x")
+
         #Creates the background image for the canvas
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
 
         self.canvas.bind("<Configure>", self.on_resize)
-
 
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
@@ -272,6 +320,52 @@ class HowToPage(ctk.CTkFrame):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
         self.canvas.coords(self.back_win, 20, 20)
+
+class CreatePlayers(ctk.CTkFrame):
+    def __init__(self, parent, decorations, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.decorations = decorations
+
+        #Grabs the background image from App class
+        self.bg_photo = controller.bg_photo
+
+        #Background canvas, how the bg img gets displayed
+        self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
+        self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.players_frame = ctk.CTkFrame(
+            self,
+        
+            #Background Color 
+            fg_color= decorations["Frames"]["Background Color"],
+
+        
+            #Border Properties
+            border_color = decorations["Frames"]["Border Color"],
+            border_width= decorations["Frames"]["Border Size"],
+            corner_radius= decorations["Frames"]["Corner Radius"]
+        )
+
+        #Places the frame on the window and lift make sure it's on top
+        self.players_frame.place(relx=0.5, rely=0.5, relheight=0.9, relwidth=0.45, anchor="center")
+        self.players_frame.lift()        
+
+        #Creates the image for the background from the canvas
+        self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
+
+        self.canvas.bind("<Configure>", self.on_resize)
+
+    def place_items(self, width, height):
+        cx, cy = width // 2, height // 2
+        self.canvas.coords(self.bg_item, cx, cy)
+
+    def on_resize(self, event):
+        if event.width < 200 or event.height < 200:
+            return
+        if not self.winfo_viewable():
+            return
+        self.place_items(event.width, event.height)
 
 if __name__ == '__main__':
     App().mainloop()
