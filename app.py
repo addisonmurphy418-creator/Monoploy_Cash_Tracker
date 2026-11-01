@@ -2,6 +2,7 @@ import os
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
+from cash_function import Tracker
 
 #Stores all decorations for widgets - makes it easier to change later
 decorations = {
@@ -46,16 +47,20 @@ class App(ctk.CTk):
 
         self.bg_photo = self.load_background()
 
+        self.tracker = Tracker(["Bob", "Tom", "Jack", "Anna", "Billy", "Bella", "Ned", "Mia"]) #TODO: Change this to None, 
+        self.player_names = list(self.tracker.track_money.keys()) 
+
         #Every screen is stacked in the same spot
         container = tk.Frame(self, bg="#cde6d0")
         container.pack(fill="both", expand=True)
 
         self.pages = {}
-        for Page in (MenuPage, HowToPage, CreatePlayers):
+        for Page in (MenuPage, HowToPage, CreatePlayers, GamePage):
             self.pages[Page] = Page(container, decorations, self)
 
-        self.show_page(MenuPage)
+        self.show_page(GamePage) #TODO: Change to MenuPage
         self.after(10, lambda: self.state("zoomed"))
+
 
     def load_background(self):
         img = Image.open("images/Monoploy-bg.png").convert('RGB')
@@ -189,7 +194,7 @@ class MenuPage(ctk.CTkFrame):
         self.creator_label.place(relx=0, rely=1, anchor='sw', x=10, y=-5)
 
         self.canvas.bind("<Configure>", self.on_resize)
-     
+
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
             return
@@ -217,8 +222,6 @@ class FixedScrollableFrame(ctk.CTkScrollableFrame):
            return
        super()._mouse_wheel_all(event)
        
-
-
 class HowToPage(ctk.CTkFrame):
     def __init__(self, parent, decorations, controller):
         super().__init__(parent)
@@ -451,6 +454,13 @@ class CreatePlayers(ctk.CTkFrame):
 
         self.canvas.bind("<Configure>", self.on_resize)
 
+    def on_resize(self, event):
+        if event.width < 200 or event.height < 200:
+            return
+        if not self.winfo_viewable():
+            return
+        self.place_items(event.width, event.height)
+
     def clear_entries(self):
         for e in self.player_entries:
             if e.get() != "":
@@ -465,22 +475,130 @@ class CreatePlayers(ctk.CTkFrame):
     def start_game(self):
         names = self.get_player_names()
 
+        #Checks if there a minimum of two names inputted by user
         if len(names) < self.MIN_PLAYERS:
             self.error_label.configure(text=f'"Please Enter At Least {self.MIN_PLAYERS} Player Names."')
             return
+
+        #Checks to see that no two player names are the same
         if len({n.lower() for n in names}) != len(names):
-            self.error_label.configure(text='"Players Names Must Be Different"')
+            self.error_label.configure(text='"Player Names Must Be Different"')
             return
 
-        self.error_label.configure(text="")
-        self.controller.player_names = names
-        print(names)    #TODO: Replace with show page (Game Page)
+        for n in names:
+            if len(n) > 8:
+                self.error_label.configure(text="Player Names Cannot Be Greater Than 8 Characters")
+                return
 
+        #Clears the error label
+        self.error_label.configure(text="")
+        self.controller.tracker = Tracker(names)
+        self.controller.player_names = names
+        self.controller.show_page(GamePage)  #Shows GamePage
 
     def place_items(self, width, height):
         cx, cy = width // 2, height // 2
         self.canvas.coords(self.bg_item, cx, cy)
         self.canvas.coords(self.back_win, 20, 20)
+
+
+class GamePage(ctk.CTkFrame):
+    def __init__(self, parent, decorations, controller):
+        self.controller = controller
+        self.decorations = decorations
+        super().__init__(parent)
+
+        #Grabs the background photo from main class App
+        self.bg_photo = controller.bg_photo
+
+        #Grabs the player_entries from main class App
+        self.track_money = self.controller.tracker.track_money
+        self.player_names = self.controller.player_names
+
+        #Background canvas, how the bg img gets displayed
+        self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
+        self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
+
+        #Creates track frame to show how much money each player has.
+        self.track_frame = ctk.CTkFrame(
+            self.canvas,
+
+            height=660,
+            width=300,
+
+
+            border_color=decorations["Frames"]["Border Color"],
+            border_width=decorations["Frames"]["Border Size"],
+            fg_color=decorations["Frames"]["Background Color"]
+        )
+        #self.track_frame.grid(row=0, column=0, pady=10, padx=10)
+        self.track_frame.place(relx=0.21, rely=0.5, relwidth=0.2, relheight=0.8,anchor="e")
+        self.track_frame.lift()
+
+        self.track_frame.grid_columnconfigure(0, weight=1)
+        self.track_frame.grid_columnconfigure(3, weight=1)
+
+        self.track_frame.grid_rowconfigure(0, weight=1)
+        self.track_frame.grid_rowconfigure((len(self.player_names) + 1), weight=1)
+
+        self.track_label = ctk.CTkLabel(
+            self.track_frame,
+            text="Player Money",
+        )
+
+        for i in range(len(self.track_money)):
+            current = self.player_names[i]
+
+            player_label = ctk.CTkLabel(
+                self.track_frame,
+                text=f"{current}:",
+                text_color=decorations["Header"]["Text Color"],
+                font=(decorations["Header"]["Font"], 24, "bold"),
+            )
+            player_label.grid(row=i + 1, column=1, padx=(0,10), pady=8)
+
+            money_label = ctk.CTkLabel(
+            self.track_frame,
+            text=f"${self.track_money[current]}",
+            text_color="#0B950B",
+            font=(decorations["Header"]["Font"], 24, "bold"),
+        )
+            money_label.grid(row=i + 1, column=2, padx=(0,10), pady=8)
+        
+        self.track_money["Mia"] =- 200
+        print(f"\nMia has ${self.track_money["Mia"]}")
+
+        #Creates Main Frame for removing and giving money to player.
+        self.main_frame = ctk.CTkFrame(
+            self.canvas,
+
+            height=660,
+            width=500,
+
+            border_color=decorations["Frames"]["Border Color"],
+            border_width=decorations["Frames"]["Border Size"],
+            fg_color=decorations["Frames"]["Background Color"]
+        )
+        #self.main_frame.grid(row=0, column=1, pady=10, padx=10)
+        self.main_frame.lift()
+        
+        #Creates Main Frame for removing and giving money to player.
+        self.update_frame = ctk.CTkFrame(
+            self.canvas,
+
+            height=660,
+            width=420,
+
+            border_color=decorations["Frames"]["Border Color"],
+            border_width=decorations["Frames"]["Border Size"],
+            fg_color=decorations["Frames"]["Background Color"]
+        )
+        #self.update_frame.grid(row=0, column=2, pady=10, padx=10)
+        self.update_frame.lift()
+
+        self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
+
+        self.canvas.bind("<Configure>", self.on_resize)
 
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
@@ -489,6 +607,11 @@ class CreatePlayers(ctk.CTkFrame):
             return
         self.place_items(event.width, event.height)
 
+    def place_items(self, width, height):
+        cx, cy = width // 2, height // 2
+
+        self.canvas.coords(self.bg_item, cx, cy)
+        
 if __name__ == '__main__':
     App().mainloop()
 
