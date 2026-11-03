@@ -9,7 +9,13 @@ class Tracker:
             self.track_money[name] = 1500
             print(f"{name} has been created with {self.track_money[name]} money!")
 
-        self.track_money["Bob"] -= 200
 
-    def take_money(self, player):
-        pass
+    def take_money(self, player, value):
+        self.track_money[player] -= value
+
+    def give_money(self, player, value):
+        self.track_money[player] += value
+
+    def give_to(self, player, second_player, value):
+        self.track_money[player] -= value
+        self.track_money[second_player] += value

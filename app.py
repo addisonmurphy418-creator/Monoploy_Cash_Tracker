@@ -47,7 +47,7 @@ class App(ctk.CTk):
 
         self.bg_photo = self.load_background()
 
-        self.tracker = Tracker(["Bob", "Tom", "Jack", "Anna", "Billy", "Bella", "Ned", "Mia"]) #TODO: Change this to None, 
+        self.tracker = Tracker(["Bob", "Tom", "Jack", "Anna", "Billy", "Bella", "Ned", "Sophie"]) #TODO: Change this to None, 
         self.player_names = list(self.tracker.track_money.keys()) 
 
         #Every screen is stacked in the same spot
@@ -512,18 +512,24 @@ class GamePage(ctk.CTkFrame):
         self.bg_photo = controller.bg_photo
 
         #Grabs the player_entries from main class App
-        self.track_money = self.controller.tracker.track_money
+        self.tracker = self.controller.tracker
+        self.track_money = self.tracker.track_money
         self.player_names = self.controller.player_names
+
+        self.money_labels = []
 
         #Background canvas, how the bg img gets displayed
         self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
         self.canvas.place(x=0, y=0, relwidth=1, relheight=1)
 
+        self.canvas.grid_rowconfigure(0, weight=1)
+        self.canvas.grid_rowconfigure(2, weight=1)
+
         #Creates track frame to show how much money each player has.
         self.track_frame = ctk.CTkFrame(
             self.canvas,
 
-            height=660,
+            height=600,
             width=300,
 
 
@@ -531,8 +537,8 @@ class GamePage(ctk.CTkFrame):
             border_width=decorations["Frames"]["Border Size"],
             fg_color=decorations["Frames"]["Background Color"]
         )
-        #self.track_frame.grid(row=0, column=0, pady=10, padx=10)
-        self.track_frame.place(relx=0.21, rely=0.5, relwidth=0.2, relheight=0.8,anchor="e")
+        self.track_frame.grid(row=1, column=0, pady=10, padx=10)
+        self.track_frame.grid_propagate(False)
         self.track_frame.lift()
 
         self.track_frame.grid_columnconfigure(0, weight=1)
@@ -543,8 +549,11 @@ class GamePage(ctk.CTkFrame):
 
         self.track_label = ctk.CTkLabel(
             self.track_frame,
-            text="Player Money",
+            text="Player Money:",
+            text_color=decorations["Header"]["Text Color"],
+            font=(decorations["Header"]["Font"], 28, "bold")
         )
+        self.track_label.grid(row=0, column=1, columnspan=2, pady=15)
 
         for i in range(len(self.track_money)):
             current = self.player_names[i]
@@ -564,41 +573,192 @@ class GamePage(ctk.CTkFrame):
             font=(decorations["Header"]["Font"], 24, "bold"),
         )
             money_label.grid(row=i + 1, column=2, padx=(0,10), pady=8)
-        
-        self.track_money["Mia"] =- 200
-        print(f"\nMia has ${self.track_money["Mia"]}")
+            self.money_labels.append(money_label)
 
         #Creates Main Frame for removing and giving money to player.
         self.main_frame = ctk.CTkFrame(
             self.canvas,
 
-            height=660,
-            width=500,
+            height=600,
+            width=550,
 
             border_color=decorations["Frames"]["Border Color"],
             border_width=decorations["Frames"]["Border Size"],
             fg_color=decorations["Frames"]["Background Color"]
         )
-        #self.main_frame.grid(row=0, column=1, pady=10, padx=10)
+        #Places the main frame with grid and makes sure that widgets doesn't change it size
+        self.main_frame.grid(row=1, column=1)
+        self.main_frame.grid_propagate(False)
         self.main_frame.lift()
+
+        self.main_frame.grid_rowconfigure(3, weight=1)
+
+        self.main_frame.grid_columnconfigure(0, weight=1)
+        self.main_frame.grid_columnconfigure(2, weight=1)
+
+        #Placement and Creation of Widgets in main frame
+
+        self.hint = ctk.CTkLabel(
+            self.main_frame,
+            text="Choose Player to give/take money from",
+            text_color="#333131",
+            font=(decorations["Header"]["Font"], 14, "bold")
+        )
+        self.hint.grid(row=0, column=1, pady=(50,0))
+
+
+        self.choice = ctk.CTkOptionMenu(
+            self.main_frame,
+
+            #List of Options
+            values=self.player_names,
+
+            #Size Properties
+            width=200,
+            height=35,
+
+            #Color Properties
+            button_color=decorations["Buttons"]["Background Color"],
+            button_hover_color=decorations["Buttons"]["Hover Color"],
+            fg_color="#333333",
+            text_color=decorations["Buttons"]["Text Color"],
+
+            #Font Properties
+            font=(decorations["Header"]["Font"], 18, "bold")
+        )
+
+        self.choice.set("Select Player")
+        self.choice.grid(row=1, column=1, pady=(10,0), padx=5)
+
+        self.amount_frame = ctk.CTkFrame(
+            self.main_frame,
+            fg_color="#FFFFFF",
+        )
+        self.amount_frame.grid(row=2, column=1, pady=(80, 0))
+
+        #Takes money from player
+        self.take_button = ctk.CTkButton(
+            self.amount_frame,
+
+            #Text Properties
+            text='Take',
+
+            #Size Properties
+            height=45,
+            width=25,
+
+            #Color Properties
+            text_color=decorations["Buttons"]["Text Color"],
+            fg_color="#C30D0D",
+            hover_color=decorations["Buttons"]["Hover Color"],
+
+            #Font Properties
+            font=(decorations["Header"]["Font"], 20, "bold"),
+
+            #Border Properties
+            border_color=decorations["Buttons"]["Border Color"],
+            border_width=decorations["Buttons"]["Border Size"]
+        )
+        self.take_button.grid(row=0, column=0, padx=(0, 5))
+
+        self.vcmd = (self.amount_frame.register(self.only_digits), "%P")
+
+        self.amount_entry = ctk.CTkEntry(
+            self.amount_frame,
+
+            #Size Properties
+            height=45,
+            width=160,
+
+            #Validation Properties
+            validate="key",
+            validatecommand=self.vcmd,
+
+            #Border Properties
+            border_color=decorations["Buttons"]["Border Color"],
+            border_width=decorations["Buttons"]["Border Size"],
+
+            #Color Properties
+            fg_color=decorations["Frames"]["Background Color"],
+            text_color=decorations["Header"]["Text Color"],
+
+            #Font Properties
+            font=(decorations["Header"]["Font"], 20, "bold")
+        )
+        self.amount_entry.insert(0, "$")
+        self.amount_entry.grid(row=0, column=1)
+
+        self.give_button = ctk.CTkButton(
+                self.amount_frame,
+                command=self.give_money,
+
+                #Text Properties
+                text='Give',
+
+                #Size Properties
+                height=45,
+                width=25,
+
+                #Color Properties
+                text_color=decorations["Buttons"]["Text Color"],
+                fg_color="#28A00D",
+                hover_color="#23880C",
+
+                #Font Properties + Text Sizing
+                font=(decorations["Header"]["Font"], 20, "bold"),
+
+                #Border Properties
+                border_color=decorations["Buttons"]["Border Color"],
+                border_width=decorations["Buttons"]["Border Size"]
+            )
+        self.give_button.grid(row=0, column=2, padx=(5, 0))
         
-        #Creates Main Frame for removing and giving money to player.
+        
+        #Track what updates have happend (e.g. Bob got $200)
         self.update_frame = ctk.CTkFrame(
             self.canvas,
 
-            height=660,
-            width=420,
+            height=600,
+            width=390,
 
             border_color=decorations["Frames"]["Border Color"],
             border_width=decorations["Frames"]["Border Size"],
             fg_color=decorations["Frames"]["Background Color"]
         )
-        #self.update_frame.grid(row=0, column=2, pady=10, padx=10)
+        self.update_frame.grid(row=1, column=2, pady=10, padx=10)
         self.update_frame.lift()
 
         self.bg_item = self.canvas.create_image(0, 0, image=self.bg_photo, anchor="center")
 
         self.canvas.bind("<Configure>", self.on_resize)
+
+    def give_money(self):
+        value = int(self.amount_entry.get()[1:])
+        player = self.choice.get()
+        self.tracker.give_money(player, value)
+        self.update_labels()
+        self.amount_entry.delete(1, "end")
+
+    #Makes user only be able to input numbers
+    def only_digits(self, proposed_text):
+
+        #returns False is text doesn't start with $ symbol
+        if not proposed_text.startswith('$'):
+            return False
+
+        #Gets the text without $ symbol
+        rest = proposed_text[1:]
+
+        #Only allow digits less than or equal to 4 digits long
+        return rest == "" or (rest.isascii() and rest.isdigit()) and len(rest) <= 4
+    
+    def update_labels(self):
+        #Updates all player's money on {track frame}
+        for i in range(len(self.money_labels)):
+            current_player = self.player_names[i]
+            current_label = self.money_labels[i]
+
+            current_label.configure(text=f"${self.track_money[current_player]}")
 
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
