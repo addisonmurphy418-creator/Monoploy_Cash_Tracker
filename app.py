@@ -591,7 +591,7 @@ class GamePage(ctk.CTkFrame):
         self.main_frame.grid_propagate(False)
         self.main_frame.lift()
 
-        self.main_frame.grid_rowconfigure(3, weight=1)
+        self.main_frame.grid_rowconfigure(6, weight=1) #TODO: Change till what is the last row + 1
 
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_columnconfigure(2, weight=1)
@@ -639,6 +639,7 @@ class GamePage(ctk.CTkFrame):
         #Takes money from player
         self.take_button = ctk.CTkButton(
             self.amount_frame,
+            command=self.take_money,
 
             #Text Properties
             text='Take',
@@ -712,14 +713,26 @@ class GamePage(ctk.CTkFrame):
                 border_width=decorations["Buttons"]["Border Size"]
             )
         self.give_button.grid(row=0, column=2, padx=(5, 0))
-        
+
+
+        self.error_label = ctk.CTkLabel(
+            self.main_frame,
+            text="",
+            text_color="#C70000",
+            font=(decorations["Header"]["Font"], 18, "bold"),
+        )
+        self.error_label.grid(row=3, column=1, pady=(20, 0))
+
+        #Stores all the labels in update_frame
+        self.labels = []
+
         
         #Track what updates have happend (e.g. Bob got $200)
-        self.update_frame = ctk.CTkFrame(
+        self.update_frame = ctk.CTkScrollableFrame(
             self.canvas,
 
-            height=600,
-            width=390,
+            height=585,
+            width=360,
 
             border_color=decorations["Frames"]["Border Color"],
             border_width=decorations["Frames"]["Border Size"],
@@ -733,11 +746,62 @@ class GamePage(ctk.CTkFrame):
         self.canvas.bind("<Configure>", self.on_resize)
 
     def give_money(self):
+        if self.choice.get() == "Select Player":
+            self.error_label.configure(text="No Player Selected")
+            return
+    
+        if self.amount_entry.get()[1:] == "":
+            self.error_label.configure(text="No Value Entered")
+            return
+
         value = int(self.amount_entry.get()[1:])
         player = self.choice.get()
         self.tracker.give_money(player, value)
         self.update_labels()
         self.amount_entry.delete(1, "end")
+
+    def take_money(self):
+        if self.choice.get() == "Select Player":
+            self.error_label.configure(text="No Player Selected")
+            return
+
+        if self.amount_entry.get()[1:] == "":
+            self.error_label.configure(text="No Value Entered")
+            return
+
+        self.error_label.configure(text="")
+
+        #Get Player Selected
+        player = self.choice.get()
+
+        #Get Value and take money from player
+        value = int(self.amount_entry.get()[1:])
+        self.tracker.take_money(player, value)
+
+        #Update the labels
+        self.add_labels(f"{player} Lost ${value}", "#FF1818")
+        self.update_labels()
+        self.amount_entry.delete(1, "end")
+
+    def add_labels(self, message, bg_color="#FFFFFF"):
+        label = ctk.CTkLabel(self.update_frame,
+                            text=message,
+                            anchor="w", 
+                            fg_color=bg_color,
+                            text_color=decorations["Header"]["Text Color"],
+                            font=(decorations["Header"]["Text Color"], 14, "bold"),
+                            corner_radius=6,
+                            border_color=decorations["Frames"]["Border Color"],
+                            border_width=3,)
+
+        if self.labels:
+            label.pack(fill="x", pady=2, before=self.labels[0])
+        else:
+            label.pack(fill="x", pady=2)
+
+        self.labels.insert(0, label)
+
+        self.update_frame._parent_canvas.yview_moveto(0)
 
     #Makes user only be able to input numbers
     def only_digits(self, proposed_text):
@@ -758,7 +822,10 @@ class GamePage(ctk.CTkFrame):
             current_player = self.player_names[i]
             current_label = self.money_labels[i]
 
-            current_label.configure(text=f"${self.track_money[current_player]}")
+            if self.track_money[current_player] <= 0:
+                current_label.configure(text=f"${self.track_money[current_player]}", text_color="#C70000")
+            else:
+                current_label.configure(text=f"${self.track_money[current_player]}", text_color="#0B950B")
 
     def on_resize(self, event):
         if event.width < 200 or event.height < 200:
