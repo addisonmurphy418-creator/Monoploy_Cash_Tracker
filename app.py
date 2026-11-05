@@ -1,4 +1,5 @@
 import os
+from time import *
 import tkinter as tk
 import customtkinter as ctk
 from PIL import Image, ImageTk
@@ -754,6 +755,9 @@ class GamePage(ctk.CTkFrame):
             self.error_label.configure(text="No Value Entered")
             return
 
+        s = strftime("%H:%M", gmtime(time()))
+        self.add_labels("Give", s)
+
         value = int(self.amount_entry.get()[1:])
         player = self.choice.get()
         self.tracker.give_money(player, value)
@@ -779,16 +783,25 @@ class GamePage(ctk.CTkFrame):
         self.tracker.take_money(player, value)
 
         #Update the labels
-        self.add_labels(f"{player} Lost ${value}", "#FF1818")
+        s = strftime("%H:%M", gmtime(time()))
+        self.add_labels("Take", s)
         self.update_labels()
         self.amount_entry.delete(1, "end")
 
-    def add_labels(self, message, bg_color="#FFFFFF"):
+    def add_labels(self, mode, time):
+        match mode:
+            case "Take":
+                message = f"{self.choice.get()}:  \t -${self.amount_entry.get()[1:]} \t [{time}]"
+                bg_color = "#C51010"
+            case "Give":
+                message = f"{self.choice.get()}:  \t +${self.amount_entry.get()[1:]} \t [{time}]"
+                bg_color = "#28A00D"
+
         label = ctk.CTkLabel(self.update_frame,
                             text=message,
                             anchor="w", 
                             fg_color=bg_color,
-                            text_color=decorations["Header"]["Text Color"],
+                            text_color="#FFFFFF",
                             font=(decorations["Header"]["Text Color"], 14, "bold"),
                             corner_radius=6,
                             border_color=decorations["Frames"]["Border Color"],
