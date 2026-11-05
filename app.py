@@ -517,7 +517,7 @@ class GamePage(ctk.CTkFrame):
         self.track_money = self.tracker.track_money
         self.player_names = self.controller.player_names
 
-        self.money_labels = []
+        self.trackLabels = {}
 
         #Background canvas, how the bg img gets displayed
         self.canvas = tk.Canvas(self, highlightthickness=0, bd=0, bg="#cde6d0")
@@ -527,7 +527,7 @@ class GamePage(ctk.CTkFrame):
         self.canvas.grid_rowconfigure(2, weight=1)
 
         #Creates track frame to show how much money each player has.
-        self.track_frame = ctk.CTkFrame(
+        self.trackFrame = ctk.CTkFrame(
             self.canvas,
 
             height=600,
@@ -538,29 +538,29 @@ class GamePage(ctk.CTkFrame):
             border_width=decorations["Frames"]["Border Size"],
             fg_color=decorations["Frames"]["Background Color"]
         )
-        self.track_frame.grid(row=1, column=0, pady=10, padx=10)
-        self.track_frame.grid_propagate(False)
-        self.track_frame.lift()
+        self.trackFrame.grid(row=1, column=0, pady=10, padx=10)
+        self.trackFrame.grid_propagate(False)
+        self.trackFrame.lift()
 
-        self.track_frame.grid_columnconfigure(0, weight=1)
-        self.track_frame.grid_columnconfigure(3, weight=1)
+        self.trackFrame.grid_columnconfigure(0, weight=1)
+        self.trackFrame.grid_columnconfigure(3, weight=1)
 
-        self.track_frame.grid_rowconfigure(0, weight=1)
-        self.track_frame.grid_rowconfigure((len(self.player_names) + 1), weight=1)
+        self.trackFrame.grid_rowconfigure(0, weight=1)
+        self.trackFrame.grid_rowconfigure((len(self.player_names) + 1), weight=1)
 
-        self.track_label = ctk.CTkLabel(
-            self.track_frame,
+        self.trackLabel = ctk.CTkLabel(
+            self.trackFrame,
             text="Player Money:",
             text_color=decorations["Header"]["Text Color"],
             font=(decorations["Header"]["Font"], 28, "bold")
         )
-        self.track_label.grid(row=0, column=1, columnspan=2, pady=15)
+        self.trackLabel.grid(row=0, column=1, columnspan=2, pady=15)
 
         for i in range(len(self.track_money)):
             current = self.player_names[i]
 
             player_label = ctk.CTkLabel(
-                self.track_frame,
+                self.trackFrame,
                 text=f"{current}:",
                 text_color=decorations["Header"]["Text Color"],
                 font=(decorations["Header"]["Font"], 24, "bold"),
@@ -568,13 +568,13 @@ class GamePage(ctk.CTkFrame):
             player_label.grid(row=i + 1, column=1, padx=(0,10), pady=8)
 
             money_label = ctk.CTkLabel(
-            self.track_frame,
+            self.trackFrame,
             text=f"${self.track_money[current]}",
             text_color="#0B950B",
             font=(decorations["Header"]["Font"], 24, "bold"),
         )
             money_label.grid(row=i + 1, column=2, padx=(0,10), pady=8)
-            self.money_labels.append(money_label)
+            self.trackLabels[current] = money_label
 
         #Creates Main Frame for removing and giving money to player.
         self.main_frame = ctk.CTkFrame(
@@ -601,9 +601,9 @@ class GamePage(ctk.CTkFrame):
 
         self.hint = ctk.CTkLabel(
             self.main_frame,
-            text="Choose Player to give/take money from",
+            text="Select Player Below",
             text_color="#333131",
-            font=(decorations["Header"]["Font"], 14, "bold")
+            font=(decorations["Header"]["Font"], 18, "bold")
         )
         self.hint.grid(row=0, column=1, pady=(50,0))
 
@@ -631,16 +631,16 @@ class GamePage(ctk.CTkFrame):
         self.choice.set("Select Player")
         self.choice.grid(row=1, column=1, pady=(10,0), padx=5)
 
-        self.amount_frame = ctk.CTkFrame(
+        self.amountFrame = ctk.CTkFrame(
             self.main_frame,
             fg_color="#FFFFFF",
         )
-        self.amount_frame.grid(row=2, column=1, pady=(80, 0))
+        self.amountFrame.grid(row=2, column=1, pady=(80, 0))
 
         #Takes money from player
-        self.take_button = ctk.CTkButton(
-            self.amount_frame,
-            command=self.take_money,
+        self.takeButton = ctk.CTkButton(
+            self.amountFrame,
+            command=self.takeMoney,
 
             #Text Properties
             text='Take',
@@ -661,12 +661,12 @@ class GamePage(ctk.CTkFrame):
             border_color=decorations["Buttons"]["Border Color"],
             border_width=decorations["Buttons"]["Border Size"]
         )
-        self.take_button.grid(row=0, column=0, padx=(0, 5))
+        self.takeButton.grid(row=0, column=0, padx=(0, 5))
 
-        self.vcmd = (self.amount_frame.register(self.only_digits), "%P")
+        self.vcmd = (self.amountFrame.register(self.only_digits), "%P")
 
-        self.amount_entry = ctk.CTkEntry(
-            self.amount_frame,
+        self.amountEntry = ctk.CTkEntry(
+            self.amountFrame,
 
             #Size Properties
             height=45,
@@ -687,12 +687,11 @@ class GamePage(ctk.CTkFrame):
             #Font Properties
             font=(decorations["Header"]["Font"], 20, "bold")
         )
-        self.amount_entry.insert(0, "$")
-        self.amount_entry.grid(row=0, column=1)
+        self.amountEntry.grid(row=0, column=1)
 
-        self.give_button = ctk.CTkButton(
-                self.amount_frame,
-                command=self.give_money,
+        self.giveButton = ctk.CTkButton(
+                self.amountFrame,
+                command=self.giveMoney,
 
                 #Text Properties
                 text='Give',
@@ -713,16 +712,52 @@ class GamePage(ctk.CTkFrame):
                 border_color=decorations["Buttons"]["Border Color"],
                 border_width=decorations["Buttons"]["Border Size"]
             )
-        self.give_button.grid(row=0, column=2, padx=(5, 0))
+        self.giveButton.grid(row=0, column=2, padx=(5, 0))
 
 
-        self.error_label = ctk.CTkLabel(
+        self.errorLabel = ctk.CTkLabel(
             self.main_frame,
             text="",
             text_color="#C70000",
             font=(decorations["Header"]["Font"], 18, "bold"),
         )
-        self.error_label.grid(row=3, column=1, pady=(20, 0))
+        self.errorLabel.grid(row=3, column=1, pady=(20, 0))
+
+        #Creates a frame for buttons Passed Go and Bankrupt
+        self.buttonFrame = ctk.CTkFrame(
+            self.main_frame,
+            fg_color=decorations["Frames"]["Background Color"])
+        self.buttonFrame.grid(row=4, column=1, pady=(20, 0))
+
+        self.passGoButton = ctk.CTkButton(
+            self.buttonFrame,
+            command=self.passGo,
+            text="Passed Go",
+            border_color=decorations["Buttons"]["Border Color"],
+            border_width=decorations["Buttons"]["Border Size"],
+            height=45,
+            font=(decorations["Header"]["Font"], 18, "bold"),
+        )
+        self.passGoButton.grid(row=0, column=1)
+
+        self.bankruptButton = ctk.CTkButton(
+            self.buttonFrame,
+            text="Bankrupt",
+            command=self.bankrupt,
+
+            fg_color = "#504D4D",
+            text_color="#FFFFFF",
+
+            hover_color="#3B3939",
+
+            font=(decorations["Header"]["Font"], 18, "bold"),
+
+            border_color=decorations["Buttons"]["Border Color"],
+            border_width=decorations["Buttons"]["Border Size"],
+
+            height=45,
+        )
+        self.bankruptButton.grid(row=0, column=2, padx=(10, 0))
 
         #Stores all the labels in update_frame
         self.labels = []
@@ -746,56 +781,107 @@ class GamePage(ctk.CTkFrame):
 
         self.canvas.bind("<Configure>", self.on_resize)
 
-    def give_money(self):
+    def bankrupt(self):
+        selectedPlayer = self.choice.get()
+
+        if selectedPlayer == "Select Player":
+            self.errorLabel.configure(text="No Player Selected")
+            return
+
+        playerLabel = self.trackLabels[selectedPlayer]
+        playerLabel.configure(text="Bankrupt", text_color="#333333")
+
+        self.errorLabel.configure(text="")
+
+        currentTime = time()
+        self.addLabels("Bankrupt", currentTime)
+
+        #Deletes player from player names list and choice so they can't be selected
+        self.player_names.remove(selectedPlayer)
+        self.choice.configure(values=self.player_names)
+        self.choice.set("Select Player")
+
+        del self.track_money[selectedPlayer]
+
+    def passGo(self):
         if self.choice.get() == "Select Player":
-            self.error_label.configure(text="No Player Selected")
+            self.errorLabel.configure(text="No Player Selected")
+            return
+
+        player = self.choice.get()
+        
+        self.tracker.passGo(player)
+
+        currentTime = time()
+        
+        self.updateLabels()
+        self.addLabels("PassGo", currentTime)
+
+        self.errorLabel.configure(text="")
+        self.amountEntry.delete(0, "end")
+        
+
+    def giveMoney(self):
+        if self.choice.get() == "Select Player":
+            self.errorLabel.configure(text="No Player Selected")
             return
     
-        if self.amount_entry.get()[1:] == "":
-            self.error_label.configure(text="No Value Entered")
+        if self.amountEntry.get() == "":
+            self.errorLabel.configure(text="No Value Entered")
             return
 
-        s = strftime("%H:%M", gmtime(time()))
-        self.add_labels("Give", s)
+        self.errorLabel.configure(text="")
 
-        value = int(self.amount_entry.get()[1:])
+        currentTime = time()
+        self.addLabels("Give", currentTime)
+
+        value = int(self.amountEntry.get())
         player = self.choice.get()
-        self.tracker.give_money(player, value)
-        self.update_labels()
-        self.amount_entry.delete(1, "end")
+        self.tracker.giveMoney(player, value)
+        self.updateLabels()
+        self.amountEntry.delete(0, "end")
 
-    def take_money(self):
+    def takeMoney(self):
         if self.choice.get() == "Select Player":
-            self.error_label.configure(text="No Player Selected")
+            self.errorLabel.configure(text="No Player Selected")
             return
 
-        if self.amount_entry.get()[1:] == "":
-            self.error_label.configure(text="No Value Entered")
+        if self.amountEntry.get() == "":
+            self.errorLabel.configure(text="No Value Entered")
             return
 
-        self.error_label.configure(text="")
+        self.errorLabel.configure(text="")
 
         #Get Player Selected
         player = self.choice.get()
 
         #Get Value and take money from player
-        value = int(self.amount_entry.get()[1:])
-        self.tracker.take_money(player, value)
+        value = int(self.amountEntry.get())
+        self.tracker.takeMoney(player, value)
 
         #Update the labels
-        s = strftime("%H:%M", gmtime(time()))
-        self.add_labels("Take", s)
-        self.update_labels()
-        self.amount_entry.delete(1, "end")
+        currentTime = time()
+        self.addLabels("Take", currentTime)
+        self.updateLabels()
+        self.amountEntry.delete(0, "end")
 
-    def add_labels(self, mode, time):
+    def addLabels(self, mode, time):
+        timeLabel = strftime("%H:%M", gmtime(time))
+
         match mode:
             case "Take":
-                message = f"{self.choice.get()}:  \t -${self.amount_entry.get()[1:]} \t [{time}]"
+                message = f"{self.choice.get()}:  \t -${self.amountEntry.get()} \t [{timeLabel}]"
                 bg_color = "#C51010"
             case "Give":
-                message = f"{self.choice.get()}:  \t +${self.amount_entry.get()[1:]} \t [{time}]"
+                message = f"{self.choice.get()}:  \t +${self.amountEntry.get()} \t [{timeLabel}]"
                 bg_color = "#28A00D"
+            case "PassGo":
+                message = f"{self.choice.get()} Passed Go!:  \t +$200 \t [{timeLabel}]"
+                bg_color = "#0D76A0"
+            case "Bankrupt":
+                message = f"{self.choice.get()} has Bankrupt! \t [{timeLabel}]"
+                bg_color = "#504D4D"
+
 
         label = ctk.CTkLabel(self.update_frame,
                             text=message,
@@ -818,22 +904,17 @@ class GamePage(ctk.CTkFrame):
 
     #Makes user only be able to input numbers
     def only_digits(self, proposed_text):
-
-        #returns False is text doesn't start with $ symbol
-        if not proposed_text.startswith('$'):
-            return False
-
-        #Gets the text without $ symbol
-        rest = proposed_text[1:]
-
         #Only allow digits less than or equal to 4 digits long
-        return rest == "" or (rest.isascii() and rest.isdigit()) and len(rest) <= 4
+        return proposed_text == "" or (proposed_text.isascii() and proposed_text.isdigit()) and len(proposed_text) <= 4
     
-    def update_labels(self):
+    def updateLabels(self):
         #Updates all player's money on {track frame}
-        for i in range(len(self.money_labels)):
-            current_player = self.player_names[i]
-            current_label = self.money_labels[i]
+        for key, value in self.trackLabels.items():
+            if key not in list(self.track_money.keys()):
+                continue
+
+            current_player = key
+            current_label = value
 
             if self.track_money[current_player] <= 0:
                 current_label.configure(text=f"${self.track_money[current_player]}", text_color="#C70000")
